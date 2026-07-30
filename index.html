@@ -69,6 +69,21 @@
     <canvas id="mp-canvas-rps" width="640" height="480"></canvas>
   </div>
 
+  <!-- 탭 5: 마법 지팡이 (opencv1_magic_wand 색상추적 JS 포팅) -->
+  <div id="mp-root-magicwand" style="position:relative; width:640px; height:480px;">
+    <video id="mp-video-magicwand" style="display:none;" playsinline></video>
+    <canvas id="mp-canvas-magicwand" width="640" height="480"></canvas>
+  </div>
+
+  <!-- 탭 6: 문서 스캔 (opencv3_doc_scanner opencv.js 포팅) — 라이브 미리보기 + 결과 -->
+  <div id="mp-root-docscan-live" style="position:relative; width:640px; height:480px;">
+    <video id="mp-video-docscan" style="display:none;" playsinline></video>
+    <canvas id="mp-canvas-docscan" width="640" height="480"></canvas>
+  </div>
+  <div id="mp-root-docscan-result" style="position:relative; width:320px; height:240px;">
+    <canvas id="mp-canvas-docscan-result"></canvas>
+  </div>
+
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
@@ -455,5 +470,13 @@
     window.startRps = rpsOnly.start;
     window.stopRps = rpsOnly.stop;
   </script>
+
+  <!-- 마법 지팡이(순수 Canvas, opencv.js 불필요) — 위 모듈 스크립트와 독립적으로 동작한다 -->
+  <script src="js/magic_wand.js"></script>
+
+  <!-- 문서 스캔 — opencv.js(WASM) 로드 후 사용. 로드는 비동기라 doc_scanner.js
+       내부에서 cv 준비 여부를 매 호출마다 확인한다(위 주석 참고). -->
+  <script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+  <script src="js/doc_scanner.js"></script>
 </body>
 </html>
