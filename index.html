@@ -19,6 +19,8 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  <!-- 디자인 스펙 6절 — 브라우저 크롬 UI 색을 앱 배경(#0F0F23)과 통일 -->
+  <meta name="theme-color" content="#0F0F23">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,6 +33,16 @@
 
   <title>part3_flutter_web</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // 디자인 스펙 4절 2안 — 1차 방법(`MediaQuery.disableAnimations`)이 Flutter
+    // 3.41.7 웹에서 브라우저의 prefers-reduced-motion 을 반영하지 않는 것을
+    // 라이브로 실측 확인(matchMedia 는 true 인데 카운트다운이 그대로 재생됨)해
+    // 스펙이 지정한 matchMedia 브릿지를 추가했다.
+    window.prefersReducedMotion = function () {
+      return matchMedia('(prefers-reduced-motion: reduce)').matches;
+    };
+  </script>
 </head>
 <body>
   <!-- 탭 1: 손만 감지 -->
@@ -49,6 +61,12 @@
   <div id="mp-root-object" style="position:relative; width:640px; height:480px;">
     <video id="mp-video-object" style="display:none;" playsinline></video>
     <canvas id="mp-canvas-object" width="640" height="480"></canvas>
+  </div>
+
+  <!-- 탭 4: 가위바위보 (mediapipe1_hand_lite/hand_lite/gesture.py 판정 로직 JS 포팅) -->
+  <div id="mp-root-rps" style="position:relative; width:640px; height:480px;">
+    <video id="mp-video-rps" style="display:none;" playsinline></video>
+    <canvas id="mp-canvas-rps" width="640" height="480"></canvas>
   </div>
 
   <!--
@@ -316,12 +334,126 @@
       },
     });
 
+    // ── 탭 4: 가위바위보 ────────────────────────────────────────────
+    // 판정 로직은 mediapipe1_hand_lite/hand_lite/gesture.py를 그대로 JS로
+    // 포팅했다 — 실사진 6장(../yolo1_rps/tests/fixtures/)으로 이미 6/6
+    // 검증된 알고리즘이라 새로 튜닝하지 않는다. 좌표계(정규화 0~1, y는
+    // 위쪽일수록 작음)도 Python HandResult와 동일해 그대로 옮길 수 있었다.
+    const RPS_INDEX = [5, 6, 7, 8];
+    const RPS_MIDDLE = [9, 10, 11, 12];
+    const RPS_RING = [13, 14, 15, 16];
+    const RPS_PINKY = [17, 18, 19, 20];
+    const RPS_WRIST = 0;
+    const RPS_THUMB_TIP = 4;
+    const RPS_INDEX_MCP = 5;
+    const RPS_MIDDLE_MCP = 9;
+    // gesture.py와 동일한 임계값 — 실사진 6장 실측 기준 결정(주석은 원본 참고).
+    const RPS_THUMB_SPREAD_RATIO_THRESHOLD = 0.57;
+
+    function rpsDist(lm, a, b) {
+      return Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y);
+    }
+    function rpsIsExtended(lm, finger) {
+      const pip = finger[1];
+      const tip = finger[3];
+      return lm[tip].y < lm[pip].y;
+    }
+    function rpsFingersUp(lm) {
+      const index = rpsIsExtended(lm, RPS_INDEX);
+      const middle = rpsIsExtended(lm, RPS_MIDDLE);
+      const ring = rpsIsExtended(lm, RPS_RING);
+      const pinky = rpsIsExtended(lm, RPS_PINKY);
+      const handSize = rpsDist(lm, RPS_WRIST, RPS_MIDDLE_MCP);
+      let thumb = false;
+      if (handSize > 0) {
+        const spreadRatio = rpsDist(lm, RPS_THUMB_TIP, RPS_INDEX_MCP) / handSize;
+        thumb = spreadRatio > RPS_THUMB_SPREAD_RATIO_THRESHOLD;
+      }
+      return { thumb, index, middle, ring, pinky };
+    }
+    // 가위 판정에서 엄지는 무시한다 — 실제 사람은 가위를 낼 때 엄지를
+    // 벌린 채로 내기 때문(원본 gesture.py 주석과 동일한 이유).
+    function classifyGesture(lm) {
+      if (!lm || lm.length !== 21) return "UNKNOWN";
+      const { thumb, index, middle, ring, pinky } = rpsFingersUp(lm);
+      const any = thumb || index || middle || ring || pinky;
+      const all = thumb && index && middle && ring && pinky;
+      if (!any) return "ROCK";
+      if (all) return "PAPER";
+      if (index && middle && !ring && !pinky) return "SCISSORS";
+      return "UNKNOWN";
+    }
+
+    const RPS_LABEL_KO = { ROCK: "바위 ✊", PAPER: "보 ✋", SCISSORS: "가위 ✌️", UNKNOWN: "인식 안 됨" };
+
+    function judgeRps(player, ai) {
+      if (player === "UNKNOWN" || ai === "UNKNOWN") return "판정불가";
+      if (player === ai) return "무승부";
+      const beats = { ROCK: "SCISSORS", SCISSORS: "PAPER", PAPER: "ROCK" };
+      return beats[player] === ai ? "승리" : "패배";
+    }
+
+    let rpsLastGesture = "UNKNOWN";
+    let rpsAiMove = null;
+    let rpsResultText = "";
+
+    const rpsOnly = createController({
+      videoId: "mp-video-rps",
+      canvasId: "mp-canvas-rps",
+      statusEvent: "rpsStatus",
+      setupModels: async (fileset) => ({
+        hand: await HandLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numHands: 1,
+        }),
+      }),
+      detectAndDraw: (video, ctx, canvas, models, now) => {
+        const result = models.hand.detectForVideo(video, now);
+        const landmarksList = result.landmarks || [];
+        drawHandLandmarks(ctx, canvas, landmarksList);
+
+        rpsLastGesture = landmarksList.length > 0 ? classifyGesture(landmarksList[0]) : "UNKNOWN";
+
+        ctx.font = "bold 28px sans-serif";
+        ctx.fillStyle = "#00FFAA";
+        ctx.fillText("내 패: " + RPS_LABEL_KO[rpsLastGesture], 10, 35);
+        if (rpsAiMove) {
+          ctx.fillStyle = "#FFAA00";
+          ctx.fillText("AI 패: " + RPS_LABEL_KO[rpsAiMove], 10, 70);
+        }
+        if (rpsResultText) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillText(rpsResultText, 10, 105);
+        }
+
+        return "인식 중 (" + rpsLastGesture + ")";
+      },
+    });
+
+    // "판정!" 버튼에서 호출 — 현재 프레임의 내 패를 고정하고 AI는 무작위로 낸다.
+    // 승패 판정은 순수 규칙(가위>보>바위>가위)이며 모델에 묻지 않는다.
+    window.playRpsRound = function () {
+      const moves = ["ROCK", "PAPER", "SCISSORS"];
+      rpsAiMove = moves[Math.floor(Math.random() * moves.length)];
+      const result = judgeRps(rpsLastGesture, rpsAiMove);
+      rpsResultText =
+        "내 패: " + RPS_LABEL_KO[rpsLastGesture] + " vs AI: " + RPS_LABEL_KO[rpsAiMove] + " -> " + result;
+      window.dispatchEvent(
+        new CustomEvent("rpsRoundResult", {
+          detail: { player: rpsLastGesture, ai: rpsAiMove, result: result },
+        })
+      );
+    };
+
     window.startHandOnly = handOnly.start;
     window.stopHandOnly = handOnly.stop;
     window.startHandFace = handFace.start;
     window.stopHandFace = handFace.stop;
     window.startObjectOnly = objectOnly.start;
     window.stopObjectOnly = objectOnly.stop;
+    window.startRps = rpsOnly.start;
+    window.stopRps = rpsOnly.stop;
   </script>
 </body>
 </html>
