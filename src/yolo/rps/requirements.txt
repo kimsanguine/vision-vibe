@@ -1,0 +1,9 @@
+ultralytics>=8.4
+opencv-python>=4.10
+huggingface_hub>=0.26
+google-genai>=1.0
+python-dotenv>=1.0
+pillow>=10.0
+
+# 개발용
+pytest>=8.0

@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+.env
+
+# 재생성 가능한 산출물
+.hf_cache/
+assets/ai_moves/
+
+# 가중치·픽스처는 scripts/fetch_assets.py로 내려받는다
+# (yolo11x는 114MB로 GitHub 파일 크기 한도를 넘는다)
+models/*.pt
+tests/fixtures/*.avi
+tests/fixtures/*.png

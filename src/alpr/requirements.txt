@@ -1,0 +1,7 @@
+ultralytics>=8.4.0
+paddlepaddle>=3.0.0
+paddleocr>=3.0.0
+opencv-python-headless
+streamlit
+pandas
+huggingface_hub

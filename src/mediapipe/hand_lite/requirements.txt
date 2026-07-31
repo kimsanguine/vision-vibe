@@ -1,0 +1,5 @@
+mediapipe>=1.0.0
+opencv-python>=4.8.0
+# cv2.putText는 한글 글리프가 없어 ??? 로 깨진다. hud.py가 PIL로 한글을 그린다.
+pillow>=10.0.0
+pytest>=8.0.0

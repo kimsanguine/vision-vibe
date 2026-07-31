@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# 실행 산출물
+output/
+
+# macOS
+.DS_Store
+
+# 병렬 작업용 worktree
+.worktrees/
+
+# 모델(models/hand_landmarker.task, 7.5MB)은 의도적으로 커밋한다.
+# 학생이 clone 직후 바로 실행할 수 있어야 하고, GitHub 파일 제한(100MB)에
+# 충분히 여유가 있다. 114MB인 YOLO 가중치와 달리 별도 다운로드 스크립트가
+# 필요 없다는 점 자체가 이 프로젝트의 주제(경량성)이기도 하다.
