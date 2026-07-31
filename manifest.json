@@ -1,12 +1,12 @@
 {
-    "name": "part3_flutter_web",
-    "short_name": "part3_flutter_web",
+    "name": "VISION VIBE | 브라우저 비전 놀이터",
+    "short_name": "VISION VIBE",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#0F0F23",
+    "theme_color": "#0F0F23",
+    "description": "카메라로 놀고, 보고, 만드는 6가지 실시간 비전 체험",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
