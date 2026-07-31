@@ -34,12 +34,9 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="VISION VIBE | 브라우저 비전 놀이터">
   <meta property="og:description" content="카메라로 놀고, 보고, 만드는 6가지 실시간 비전 체험">
-  <meta property="og:image" content="https://kimsanguine.github.io/vision-vibe/og.png">
-  <meta property="og:image:alt" content="VISION VIBE — 카메라로 놀고, 보고, 만들어보세요">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="VISION VIBE | 브라우저 비전 놀이터">
   <meta name="twitter:description" content="카메라로 놀고, 보고, 만드는 6가지 실시간 비전 체험">
-  <meta name="twitter:image" content="https://kimsanguine.github.io/vision-vibe/og.png">
 
   <title>VISION VIBE | 브라우저 비전 놀이터</title>
   <link rel="manifest" href="manifest.json">
@@ -86,12 +83,16 @@
   </div>
 
   <!-- 탭 6: 문서 스캔 (opencv3_doc_scanner opencv.js 포팅) — 라이브 미리보기 + 결과 -->
-  <div id="mp-root-docscan-live" style="position:relative; width:640px; height:480px;">
+  <!-- Dart 쪽 SizedBox(_liveWidth/_liveHeight, doc_scanner_tab.dart)와 이 div
+       크기를 반드시 일치시킨다 — 다르면 Flutter platform view wrapper와 실제
+       DOM 크기가 어긋나 컨텐츠가 넘치거나 짤린다. 캔버스 픽셀 해상도(640x480)는
+       카메라 캡처 품질용이라 그대로 두고, style 로 표시 크기만 축소한다. -->
+  <div id="mp-root-docscan-live" style="position:relative; width:360px; height:270px;">
     <video id="mp-video-docscan" style="display:none;" playsinline></video>
-    <canvas id="mp-canvas-docscan" width="640" height="480"></canvas>
+    <canvas id="mp-canvas-docscan" width="640" height="480" style="width:100%; height:100%;"></canvas>
   </div>
-  <div id="mp-root-docscan-result" style="position:relative; width:320px; height:240px;">
-    <canvas id="mp-canvas-docscan-result"></canvas>
+  <div id="mp-root-docscan-result" style="position:relative; width:140px; height:105px;">
+    <canvas id="mp-canvas-docscan-result" style="width:100%; height:100%;"></canvas>
   </div>
 
   <!--
