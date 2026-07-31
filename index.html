@@ -252,6 +252,14 @@
           if (!models) {
             emitStatus("모델 로딩 중...");
             const fileset = await getSharedFileset();
+            // opencv.js(Emscripten 빌드)가 초기화 후 남겨두는 전역 window.Module을
+            // MediaPipe의 WASM 글루(마찬가지로 Emscripten 빌드)가 그대로 채택해,
+            // 이미 끝난 모듈의 초기화 콜백을 무한 대기하며 렌더러가 멈추는 문제가
+            // 있다(통제 실험으로 확인: opencv.js 로드 후 이 삭제 없이는 GPU/CPU
+            // delegate 모두 hang, 삭제하면 정상). opencv.js는 이 시점에 이미 자신의
+            // 초기화를 끝내고 cv 전역에 결과를 옮겨둔 뒤라, window.Module을 지워도
+            // 마법 지팡이/문서 스캔 탭 기능에는 영향이 없다.
+            delete window.Module;
             models = await setupModels(fileset);
           }
 
